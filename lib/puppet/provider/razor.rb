@@ -31,10 +31,15 @@ class Puppet::Provider::Razor < Puppet::Provider
   end
 
   def post(url, args)
+    count = 0
     begin
       @conn ||= setup_transport
       response = @conn["commands/#{url}"].post args.to_pson, {:content_type => :json, :accept => :json}
     rescue Exception => e
+      sleep(10)
+      count += 1
+      Puppet.warning "Retrying failed REST call: %s for error: #{e.response}" % url.to_s
+      retry unless count > 1
       fail("Rest call failed: #{e.response}")
     end
     unless response.code == 202
