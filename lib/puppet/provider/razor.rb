@@ -22,7 +22,14 @@ class Puppet::Provider::Razor < Puppet::Provider
       response = @conn["collections/#{[type, name, action].compact.join('/')}"].get
     rescue RestClient::ResourceNotFound
       return false
+    rescue RestClient::Exception => e
+      sleep(10)
+      count += 1
+      Puppet.warning "Retrying failed REST call: %s for error: #{e.response}" % url.to_s
+      retry unless count > 1
+      fail("Rest call failed: #{e.response}")
     end
+
     if response.code == 200
       PSON.parse(response)
     else
